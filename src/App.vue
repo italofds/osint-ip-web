@@ -2,7 +2,7 @@
 	<nav class="navbar navbar-expand navbar-dark bg-dark fixed-top" aria-label="Second navbar example">
 		<div class="container">
 			<div>
-				<img src = "../assets/italofds_identicon.svg" alt="italofds identicon" class="navbar-icon me-3 align-middle" />
+				<img src = "../assets/github-logo.svg" alt="italofds identicon" class="navbar-icon me-3 align-middle" />
 				<a class="navbar-brand align-middle" href="https://github.com/italofds" target="_blank">italofds</a>
 				<span class="navbar-brand align-middle"> / </span>
 				<a class="navbar-brand align-middle" href="https://github.com/italofds/osint-ip-web" target="_blank">osint-ip-web</a>
@@ -41,10 +41,12 @@
 			</div>
 
 			<div id="result" class="my-5" v-show="resultList.length > 0">
-				<h3>Resultado da Consulta:</h3>
-				<p>Exibindo resultado do total de  {{ resultList.length }} endereços IP informados.</p>
+				<h2>Resultado da Consulta:</h2>
 
-				<GMapMap ref="myMapRef" class="mt-3" :center="{ lat: 0, lng: 0 }" :zoom="1" map-type-id="terrain" style="width: 100%; height: 400px" :options="{
+				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
+				<a href="#" class="btn btn-light">Exportar Excel</a>
+				
+				<GMapMap ref="myMapRef" class="mt-3 mb-3" :center="{ lat: 0, lng: 0 }" :zoom="1" map-type-id="terrain" style="width: 100%; height: 400px" :options="{
 					zoomControl: true,
 					mapTypeControl: false,
 					scaleControl: false,
@@ -57,7 +59,7 @@
 					<GMapMarker :key="marker" v-for="marker in mapMarkers" :position="marker.position"/>	
 				</GMapMap>
 				
-				<div class="table-responsive mt-5">
+				<div class="table-responsive">
 					<table class="table table-striped table-hover">
 						<thead>
 							<tr>
@@ -66,8 +68,9 @@
 								<th scope="col">País</th>
 								<th scope="col">Cidade</th>
 								<th scope="col">ISP</th>
-								<th scope="col">Dt. Ref.</th>
-								<th scope="col">Data IP</th>
+								<th scope="col" class="text-center">Dt. Ref.</th>
+								<th scope="col" class="text-center">Data IP</th>
+								<th v-if="hasExtraInfo" scope="col">Info. Extras</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -83,8 +86,9 @@
 								<td>{{ uniqueIpDataList[ipItem.dataIndex].country }}</td>
 								<td>{{ uniqueIpDataList[ipItem.dataIndex].city }}</td>
 								<td>{{ uniqueIpDataList[ipItem.dataIndex].isp }}</td>
-								<td>{{ uniqueIpDataList[ipItem.dataIndex].refDate }}</td>
-								<td>{{ ipItem.date ? ipItem.date : "-" }}</td>
+								<td class="text-center">{{ uniqueIpDataList[ipItem.dataIndex].refDate }}</td>
+								<td class="text-center">{{ ipItem.date ? ipItem.date : "-" }}</td>
+								<td v-if="hasExtraInfo">{{ ipItem.extraInfo }}</td>
 							</tr>
 						</tbody>
 					</table>
@@ -108,11 +112,11 @@ export default {
 	data() {
 		return {
 			dateFormatItens: [
-				{id: 0, text: "AAAA-MM-DD (Padrão)", dateFormat: "YYYY-MM-DD", regex: /\d{4}-\d{2}-\d{2}$/ },
-				{id: 1, text: "DD/MM/AAAA", dateFormat: "DD/MM/YYYY", regex: /\d{2}\/\d{2}\/\d{4}$/ },
-				{id: 2, text: "DD-MM-AAAA", dateFormat: "DD-MM-YYYY", regex: /\d{2}-\d{2}-\d{4}$/ },
-				{id: 3, text: "MM/DD/AAAA", dateFormat: "MM/DD/YYYY", regex: /\d{2}\/\d{2}\/\d{4}$/ },
-				{id: 4, text: "MM-DD-AAAA", dateFormat: "MM-DD-YYYY", regex: /\d{2}-\d{2}-\d{4}$/ }
+				{id: 0, text: "AAAA-MM-DD (Padrão)", dateFormat: "YYYY-MM-DD", regex: /\d{4}-\d{2}-\d{2}/g },
+				{id: 1, text: "DD/MM/AAAA", dateFormat: "DD/MM/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
+				{id: 2, text: "DD-MM-AAAA", dateFormat: "DD-MM-YYYY", regex: /\d{2}-\d{2}-\d{4}/g },
+				{id: 3, text: "MM/DD/AAAA", dateFormat: "MM/DD/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
+				{id: 4, text: "MM-DD-AAAA", dateFormat: "MM-DD-YYYY", regex: /\d{2}-\d{2}-\d{4}/g }
 			],
 			formData: {
 				ipList: '',
@@ -121,34 +125,51 @@ export default {
 			uniqueIpDataList: [],
 			resultList: [],
 			mapMarkers: [],
-			mapBounds: {}
+			hasExtraInfo: false
 		};
 	},
 	methods: {
 		handleFormSubmit() {
-			this.resultList = [];
-			this.uniqueIpDataList = []
-			
-			const regexIP = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b/;
-			var separateLines = this.formData.ipList.split(/\r?\n|\r|\n/g);
 
-			for (let line of separateLines) {
-				var lineIP = line.match(regexIP);
+			console.log(process.env.VUE_APP_IP_API_URL);
+			console.log(process.env.VUE_APP_MAPS_API_KEY);
+
+			this.resultList = [];
+			this.uniqueIpDataList = [];
+			this.mapMarkers = [];
+			this.hasExtraInfo = false;
+			
+			const regexIP = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b/gi;
+			var separateRows = this.formData.ipList.split(/\r?\n|\r|\n/g);
+			
+			var resultSize = 0;			
+			if(separateRows && separateRows.length > 100) {
+				resultSize = 100;
+			} else {
+				resultSize  = separateRows.length;
+			}
+
+			for (let i = 0; i < resultSize; i++) {
+				var row = separateRows[i];
+				var rowIpList = row.match(regexIP);
+				row = row.replaceAll(regexIP, "");
 				
-				if(lineIP) {
+				if(rowIpList) {
 					//Start ip data config
-					var ipAddressFormated = formatIP(lineIP[0]);		
+					var ipAddressFormated = formatIP(rowIpList[0]);		
 					var validDate = "";
 					var ipDataIndex = -1;
 				''
 					//Date ip config
 					const dateData = this.dateFormatItens.find(obj => obj.id === this.formData.selectedDateFormat);
-					var lineDate = line.match(dateData.regex);
-					if(lineDate) {
-						if(isValidDate(lineDate[0], dateData.dateFormat)) {
-							validDate = lineDate[0];
+					var rowDateList = row.match(dateData.regex);
+					row = row.replaceAll(dateData.regex, "");
+
+					if(rowDateList) {
+						if(isValidDate(rowDateList[0], dateData.dateFormat)) {
+							validDate = rowDateList[0];
 						}						
-					}		
+					}					
 
 					//Unique ip data config
 					for (let i = 0; i < this.uniqueIpDataList.length; i++) {
@@ -163,8 +184,11 @@ export default {
 						ipDataIndex = this.uniqueIpDataList.length-1;
 					}
 
-					//Result config
-					this.resultList.push({ip: ipAddressFormated, date: validDate, dataIndex: ipDataIndex});					
+					//Result config					
+					this.resultList.push({ip: ipAddressFormated, date: validDate, dataIndex: ipDataIndex, extraInfo: row.trim()});
+					if(row.trim() != "") {
+						this.hasExtraInfo = true;
+					}					
 				}
 			}
 
@@ -177,7 +201,7 @@ export default {
 
 			for (let uniqueIpData of this.uniqueIpDataList) {
 				try {
-					var url  = "http://localhost:3000/" + uniqueIpData.ip + "/" + uniqueIpData.date;
+					var url  = process.env.VUE_APP_IP_API_URL + uniqueIpData.ip + "/" + uniqueIpData.date;
 					const response = await axios.get(url);
 
 					uniqueIpData.isp = response.data.asn;
@@ -197,9 +221,7 @@ export default {
 					this.mapMarkers.push(marker);
 					
 					bounds.extend(marker.position);
-					this.$refs.myMapRef.fitBounds(bounds);					
-
-					console.log(bounds);
+					this.$refs.myMapRef.fitBounds(bounds);
 
 				} catch (error) {
 					uniqueIpData.status = "error"
@@ -259,7 +281,7 @@ function isValidDate(date, format) {
 
 <style>
 	.navbar-brand:hover {
-		text-decoration: underline;
+		text-decoration: underrow;
 	}
 
 	.navbar-icon {
