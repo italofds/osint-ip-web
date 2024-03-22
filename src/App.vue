@@ -43,7 +43,7 @@
 				<h2>Resultado da Consulta:</h2>
 
 				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
-				<a href="#" class="btn btn-light">Exportar Excel</a>
+				<button class="btn btn-light" @click="exportExcel()">Exportar Excel</button>
 				
 				<GMapMap ref="myMapRef" class="mt-3 mb-3" :center="{ lat: 0, lng: 0 }" :zoom="1" map-type-id="terrain" style="width: 100%; height: 400px" :options="{
 					zoomControl: true,
@@ -96,7 +96,7 @@
 				</div>
 			</div>		
 
-			<p class="text-muted small text-center">Desenvolvido por <a type="_blank" href="https://github.com/italofds">Ítalo Santos</a> | © 2024 | Licença GPL-3.0 | Contribua: <a type="_blank" href="https://github.com/italofds/osint-ip-web">github.com/italofds/osint-ip-web</a> | Hospedado no GitHub Pages</p>	
+			<p class="text-muted small text-center">Desenvolvido por <a target="_blank" href="https://github.com/italofds">Ítalo Santos</a> | © 2024 | Licença GPL-3.0 | Contribua: <a target="_blank" href="https://github.com/italofds/osint-ip-web">github.com/italofds/osint-ip-web</a> | Hospedado pelo GitHub Pages</p>	
 		</div>
 	</main>
 
@@ -109,6 +109,7 @@
 import mapStyleJSON from '../assets/map-style.json'
 import moment from 'moment';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 function formatIP(IPAddressRaw){
 	var ipAddressFormated;
@@ -285,6 +286,28 @@ export default {
 					console.error('Ocorreu um erro durante a busca dos dados: ', error);
 				}
 			}			
+		},
+		exportExcel() {
+			var exportDataList = [];
+
+			for(let resultItem of this.resultList) {
+				var exportData = {
+					"IP" : this.uniqueIpDataList[resultItem.dataIndex].ip,
+					"País" : this.uniqueIpDataList[resultItem.dataIndex].country, 
+					"UF" : this.uniqueIpDataList[resultItem.dataIndex].region, 
+					"Cidade" : this.uniqueIpDataList[resultItem.dataIndex].city, 
+					"ISP" : this.uniqueIpDataList[resultItem.dataIndex].isp, 
+					"Data Ref." : this.uniqueIpDataList[resultItem.dataIndex].refDate, 
+					"Data IP" : this.uniqueIpDataList[resultItem.dataIndex].date, 
+					"Info. Extras" : resultItem.extraInfo
+				};
+				exportDataList.push(exportData);
+			}			
+
+			var worksheet = XLSX.utils.json_to_sheet(exportDataList);					
+			var workbook = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(workbook, worksheet, "Dados IP");
+			XLSX.writeFile(workbook, "ip-data-result.xlsx");
 		}
 	},
 	setup() {
