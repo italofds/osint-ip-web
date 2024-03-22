@@ -1,5 +1,12 @@
 [
     {
+        "featureType": "administrative",
+        "elementType": "geometry.fill",
+        "stylers": [
+          { "visibility": "off" }
+        ]
+    },
+    {
         "featureType": "landscape",
         "elementType": "geometry.fill",
         "stylers": [

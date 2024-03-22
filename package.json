@@ -1,7 +1,14 @@
 {
 	"name": "osint-ip-web",
+	"description": "Bulk search for IP information (by date or not).",
 	"version": "1.0.0",
-	"private": true,
+	"homepage": "https://github.com/italofds/osint-ip-web#readme",
+	"private": true,	
+	"license": "GPL-3.0",
+	"author": {
+		"name": "Ítalo Santos",
+		"url": "https://github.com/italofds"
+	},
 	"scripts": {
 		"serve": "vue-cli-service serve",
 		"build": "vue-cli-service build",		
@@ -13,12 +20,9 @@
 		"type": "git",
 		"url": "git+https://github.com/italofds/osint-ip-web.git"
 	},
-	"author": "Ítalo Santos",
-	"license": "ISC",
 	"bugs": {
 		"url": "https://github.com/italofds/osint-ip-web/issues"
-	},
-	"homepage": "https://github.com/italofds/osint-ip-web#readme",
+	},	
 	"dependencies": {
 		"@fawmi/vue-google-maps": "^0.9.79",
 		"axios": "^1.6.8",

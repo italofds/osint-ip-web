@@ -13,7 +13,7 @@
 
 	<main id="start" class="pt-5">
 		<div class="container p-3">
-			<div class="bg-body-tertiary p-5 rounded">
+			<div class="bg-body-tertiary mb-3 p-5 rounded">
 				<h1 class="mb-3">Pesquisa em massa de informações de IP (por data ou não)</h1>
 				<p class="lead">Esta ferramenta permite a pesquisa em massa de <strong>informações de IP</strong> disponíveis publicamente na Internet.</p>
 				<p class="lead">Para isso, é necessário informar 1 ou mais endereços IP (IPv6 ou IPv4), <strong>separados por linha</strong>. Se desejar fazer uma pesquisa mais precisa por data, informe também a data na mesma linha.</p>
@@ -27,7 +27,7 @@
 						<div class="col-md-6">
 							<div class="input-group mb-3" style="height:50px;">
 								<span class="input-group-text" id="basic-addon1">Formato data:</span>
-								<select v-model="formData.selectedDateFormat" class="form-select">
+								<select v-model="formData.selectedDateFormatIndex" class="form-select">
 									<option v-for="item in dateFormatItens" :value="item.id" :key="item.id">{{ item.text }}</option>
 								</select>
 							</div>
@@ -37,10 +37,9 @@
 						</div>
 					</div>
 				</form>
-
 			</div>
 
-			<div id="result" class="my-5" v-show="resultList.length > 0">
+			<div id="result" class="mt-5" v-show="resultList.length > 0">
 				<h2>Resultado da Consulta:</h2>
 
 				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
@@ -59,41 +58,45 @@
 					<GMapMarker :key="marker" v-for="marker in mapMarkers" :position="marker.position"/>	
 				</GMapMap>
 				
-				<div class="table-responsive">
-					<table class="table table-striped table-hover">
+				<div class="table-responsive mb-3">
+					<table class="table table-striped table-hover mb-0">
 						<thead>
 							<tr>
 								<th scope="col"></th>
 								<th scope="col">Endereço IP</th>
 								<th scope="col">País</th>
+								<th scope="col">UF</th>
 								<th scope="col">Cidade</th>
 								<th scope="col">ISP</th>
-								<th scope="col" class="text-center">Dt. Ref.</th>
+								<th scope="col" class="text-center">Data Ref.</th>
 								<th scope="col" class="text-center">Data IP</th>
 								<th v-if="hasExtraInfo" scope="col">Info. Extras</th>
 							</tr>
 						</thead>
 						<tbody>
-							<tr v-for="ipItem in resultList" :key="ipItem" :class="uniqueIpDataList[ipItem.dataIndex].status"> 
+							<tr v-for="(resultObj, index) in resultList" :key="index" :class="uniqueIpDataList[resultObj.dataIndex].status">
 								<td>
-									<div v-if="uniqueIpDataList[ipItem.dataIndex].status == 'loading'" class="spinner-border spinner-border-sm" role="status">
+									<div v-if="uniqueIpDataList[resultObj.dataIndex].status == 'loading'" class="spinner-border spinner-border-sm" role="status">
 										<span class="visually-hidden">Loading...</span>
 									</div>
-									<i v-if="uniqueIpDataList[ipItem.dataIndex].status == 'error'" class="text-danger bi bi-exclamation-diamond-fill"></i>
-									<i v-if="uniqueIpDataList[ipItem.dataIndex].status == 'success'" class="text-success bi bi-check-circle-fill"></i>
+									<i v-if="uniqueIpDataList[resultObj.dataIndex].status == 'error'" class="text-danger bi bi-exclamation-diamond-fill"></i>
+									<i v-if="uniqueIpDataList[resultObj.dataIndex].status == 'success'" class="text-success bi bi-check-circle-fill"></i>
 								</td>
-								<td>{{ ipItem.ip }}</td>
-								<td>{{ uniqueIpDataList[ipItem.dataIndex].country }}</td>
-								<td>{{ uniqueIpDataList[ipItem.dataIndex].city }}</td>
-								<td>{{ uniqueIpDataList[ipItem.dataIndex].isp }}</td>
-								<td class="text-center">{{ uniqueIpDataList[ipItem.dataIndex].refDate }}</td>
-								<td class="text-center">{{ ipItem.date ? ipItem.date : "-" }}</td>
-								<td v-if="hasExtraInfo">{{ ipItem.extraInfo }}</td>
+								<td class="text-nowrap">{{ printValue(uniqueIpDataList[resultObj.dataIndex].ip) }}</td>
+								<td class="text-nowrap">{{ printValue(uniqueIpDataList[resultObj.dataIndex].country) }}</td>
+								<td class="text-nowrap">{{ printValue(uniqueIpDataList[resultObj.dataIndex].region) }}</td>
+								<td class="text-nowrap">{{ printValue(uniqueIpDataList[resultObj.dataIndex].city) }}</td>
+								<td class="text-nowrap">{{ printValue(uniqueIpDataList[resultObj.dataIndex].isp) }}</td>
+								<td class="text-nowrap text-center">{{ printDateValue(uniqueIpDataList[resultObj.dataIndex].refDate) }}</td>
+								<td class="text-nowrap text-center">{{ printDateValue(uniqueIpDataList[resultObj.dataIndex].date) }}</td>
+								<td class="text-nowrap" v-if="hasExtraInfo">{{ printValue(resultObj.extraInfo) }}</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-			</div>			
+			</div>		
+
+			<p class="text-muted small text-center">Desenvolvido por <a type="_blank" href="https://github.com/italofds">Ítalo Santos</a> | © 2024 | Licença GPL-3.0 | Contribua: <a type="_blank" href="https://github.com/italofds/osint-ip-web">github.com/italofds/osint-ip-web</a> | Hospedado no GitHub Pages</p>	
 		</div>
 	</main>
 
@@ -106,140 +109,6 @@
 import mapStyleJSON from '../assets/map-style.json'
 import moment from 'moment';
 import axios from 'axios';
-
-export default {
-	name: 'App',
-	data() {
-		return {
-			dateFormatItens: [
-				{id: 0, text: "AAAA-MM-DD (Padrão)", dateFormat: "YYYY-MM-DD", regex: /\d{4}-\d{2}-\d{2}/g },
-				{id: 1, text: "DD/MM/AAAA", dateFormat: "DD/MM/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
-				{id: 2, text: "DD-MM-AAAA", dateFormat: "DD-MM-YYYY", regex: /\d{2}-\d{2}-\d{4}/g },
-				{id: 3, text: "MM/DD/AAAA", dateFormat: "MM/DD/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
-				{id: 4, text: "MM-DD-AAAA", dateFormat: "MM-DD-YYYY", regex: /\d{2}-\d{2}-\d{4}/g }
-			],
-			formData: {
-				ipList: '',
-				selectedDateFormat: 0
-			},
-			uniqueIpDataList: [],
-			resultList: [],
-			mapMarkers: [],
-			hasExtraInfo: false
-		};
-	},
-	methods: {
-		handleFormSubmit() {
-
-			console.log(process.env.VUE_APP_IP_API_URL);
-			console.log(process.env.VUE_APP_MAPS_API_KEY);
-
-			this.resultList = [];
-			this.uniqueIpDataList = [];
-			this.mapMarkers = [];
-			this.hasExtraInfo = false;
-			
-			const regexIP = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b/gi;
-			var separateRows = this.formData.ipList.split(/\r?\n|\r|\n/g);
-			
-			var resultSize = 0;			
-			if(separateRows && separateRows.length > 100) {
-				resultSize = 100;
-			} else {
-				resultSize  = separateRows.length;
-			}
-
-			for (let i = 0; i < resultSize; i++) {
-				var row = separateRows[i];
-				var rowIpList = row.match(regexIP);
-				row = row.replaceAll(regexIP, "");
-				
-				if(rowIpList) {
-					//Start ip data config
-					var ipAddressFormated = formatIP(rowIpList[0]);		
-					var validDate = "";
-					var ipDataIndex = -1;
-				''
-					//Date ip config
-					const dateData = this.dateFormatItens.find(obj => obj.id === this.formData.selectedDateFormat);
-					var rowDateList = row.match(dateData.regex);
-					row = row.replaceAll(dateData.regex, "");
-
-					if(rowDateList) {
-						if(isValidDate(rowDateList[0], dateData.dateFormat)) {
-							validDate = rowDateList[0];
-						}						
-					}					
-
-					//Unique ip data config
-					for (let i = 0; i < this.uniqueIpDataList.length; i++) {
-						let uniqueIpData = this.uniqueIpDataList[i];
-						if(uniqueIpData.ip == ipAddressFormated && uniqueIpData.date == validDate){
-							ipDataIndex = i;
-							break;
-						}
-					}
-					if(ipDataIndex == -1) {
-						this.uniqueIpDataList.push({ip: ipAddressFormated, date: validDate, country: "-", city: "-", isp: "-", refDate: "-", status: "loading"});
-						ipDataIndex = this.uniqueIpDataList.length-1;
-					}
-
-					//Result config					
-					this.resultList.push({ip: ipAddressFormated, date: validDate, dataIndex: ipDataIndex, extraInfo: row.trim()});
-					if(row.trim() != "") {
-						this.hasExtraInfo = true;
-					}					
-				}
-			}
-
-			window.location.href='#result';
-			this.fetchData();
-		},
-		async fetchData() {
-			var locationsList = [];
-			var bounds = new window.google.maps.LatLngBounds();
-
-			for (let uniqueIpData of this.uniqueIpDataList) {
-				try {
-					var url  = process.env.VUE_APP_IP_API_URL + uniqueIpData.ip + "/" + uniqueIpData.date;
-					const response = await axios.get(url);
-
-					uniqueIpData.isp = response.data.asn;
-					uniqueIpData.country = response.data.country;
-					uniqueIpData.city = response.data.city;
-					uniqueIpData.refDate = response.data.dbDate;
-					uniqueIpData.status = "success";
-
-					var location = {lat: response.data.location.lat, lng: response.data.location.lng};
-
-					locationsList.push(location);
-					var marker = {
-						position: {
-							lat: location.lat, lng: location.lng
-						},
-					};
-					this.mapMarkers.push(marker);
-					
-					bounds.extend(marker.position);
-					this.$refs.myMapRef.fitBounds(bounds);
-
-				} catch (error) {
-					uniqueIpData.status = "error"
-					console.error('Ocorreu um erro durante a busca dos dados: ', error);
-				}
-			}
-
-			
-		}
-	},
-	setup() {
-		const mapStyle = mapStyleJSON;
-
-		return {
-			mapStyle
-		}
-	}
-}
 
 function formatIP(IPAddressRaw){
 	var ipAddressFormated;
@@ -265,7 +134,6 @@ function formatIP(IPAddressRaw){
 			
 			arrayIPPartsFormated.push(ipPart);
 		} 
-
 		
 		ipAddressFormated = arrayIPPartsFormated.join(":");
 	}
@@ -273,10 +141,160 @@ function formatIP(IPAddressRaw){
 	return ipAddressFormated.toUpperCase();
 }
 
-function isValidDate(date, format) {
-	return moment(date, format, true).isValid();
+function validateDate(date, formatIn, formatOut) {
+	var dataMoment = moment(date, formatIn, true);
+
+	if(dataMoment.isValid()) {
+		return dataMoment.format(formatOut);
+	} else {
+		return "";
+	}
 }
 
+export default {
+	name: 'App',
+	data() {
+		return {
+			dateFormatItens: [
+				{id: 0, text: "AAAA-MM-DD (Padrão)", dateFormat: "YYYY-MM-DD", regex: /\d{4}-\d{2}-\d{2}/g },
+				{id: 1, text: "DD/MM/AAAA", dateFormat: "DD/MM/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
+				{id: 2, text: "DD-MM-AAAA", dateFormat: "DD-MM-YYYY", regex: /\d{2}-\d{2}-\d{4}/g },
+				{id: 3, text: "MM/DD/AAAA", dateFormat: "MM/DD/YYYY", regex: /\d{2}\/\d{2}\/\d{4}/g },
+				{id: 4, text: "MM-DD-AAAA", dateFormat: "MM-DD-YYYY", regex: /\d{2}-\d{2}-\d{4}/g }
+			],
+			formData: {
+				ipList: '',
+				selectedDateFormatIndex: 0
+			},
+			uniqueIpDataList: [],
+			resultList: [],
+			mapMarkers: []
+		};
+	},
+	computed: {
+		selectedDateFormat: function () {
+			return this.dateFormatItens.find(obj => obj.id === this.formData.selectedDateFormatIndex);
+		},
+		
+		hasExtraInfo: function () {
+			var response = false;
+			for(let result of this.resultList) {
+				if(result.extraInfo) {
+					response = true;
+					break;
+				}
+			}
+			return response;
+		}
+	},
+	methods: {
+		printValue: function (value) {
+			return value ? value : "-";
+		},
+		printDateValue: function (dateValue) {
+			if (dateValue) {
+				return validateDate(dateValue, "YYYY-MM-DD", this.selectedDateFormat.dateFormat);
+			}
+			return "-";
+		},
+		handleFormSubmit() {
+			this.resultList = [];
+			this.uniqueIpDataList = [];
+			this.mapMarkers = [];
+			
+			const regexIP = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b/gi;
+			var separateRows = this.formData.ipList.split(/\r?\n|\r|\n/g);
+			
+			var resultSize = 0;			
+			if(separateRows && separateRows.length > 100) {
+				resultSize = 100;
+			} else {
+				resultSize  = separateRows.length;
+			}
+
+			for (let i = 0; i < resultSize; i++) {
+				var row = separateRows[i];
+				var rowIpList = row.match(regexIP);
+				
+				if(rowIpList) {
+					//Start ip data config					
+					var ipAddressFormated = formatIP(rowIpList[0]);		
+					var validDate = "";
+					var ipDataIndex = -1;
+					row = row.replaceAll(regexIP, "");
+				''
+					//Date ip config
+					var rowDateList = row.match(this.selectedDateFormat.regex);					
+					if(rowDateList) {
+						validDate = validateDate(rowDateList[0], this.selectedDateFormat.dateFormat, "YYYY-MM-DD");
+						row = row.replaceAll(this.selectedDateFormat.regex, "");			
+					}
+
+					//Unique ip data config
+					for (let i = 0; i < this.uniqueIpDataList.length; i++) {
+						var uniqueIpData = this.uniqueIpDataList[i];
+						if(uniqueIpData.ip == ipAddressFormated && uniqueIpData.date == validDate){
+							ipDataIndex = i;
+							break;
+						}
+					}
+					if(ipDataIndex == -1) {
+						this.uniqueIpDataList.push({status: "loading", ip: ipAddressFormated, country: "", region: "", city: "", isp: "", refDate: "", date: validDate});
+						ipDataIndex = this.uniqueIpDataList.length-1;
+					}
+
+					//Result config					
+					this.resultList.push({dataIndex: ipDataIndex, extraInfo: row.trim()});		
+				}
+			}
+
+			window.location.href='#result';
+			this.fetchData();
+		},
+		async fetchData() {
+			var locationsList = [];
+			var bounds = new window.google.maps.LatLngBounds();
+
+			for (let uniqueIpData of this.uniqueIpDataList) {
+				try {
+					var url  = process.env.VUE_APP_IP_API_URL + uniqueIpData.ip + "/" + uniqueIpData.date;
+					const response = await axios.get(url);
+
+					uniqueIpData.isp = response.data.asn;
+					uniqueIpData.country = response.data.country;
+					uniqueIpData.region = response.data.regionName;
+					uniqueIpData.city = response.data.city;
+					uniqueIpData.refDate = response.data.dbDate;
+					uniqueIpData.status = "success";
+
+					var location = {lat: response.data.location.lat, lng: response.data.location.lng};
+
+					locationsList.push(location);
+					var marker = {
+						position: {
+							lat: location.lat, lng: location.lng
+						},
+					};
+					this.mapMarkers.push(marker);
+					
+					bounds.extend(marker.position);
+					this.$refs.myMapRef.fitBounds(bounds);
+
+				} catch (error) {
+					uniqueIpData.status = "error"
+					console.error('Ocorreu um erro durante a busca dos dados: ', error);
+				}
+			}			
+		}
+	},
+	setup() {
+		const mapStyle = mapStyleJSON;
+
+		return {
+			mapStyle
+		}
+	}
+}
 </script>
 
 <style>
