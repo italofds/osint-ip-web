@@ -6,6 +6,7 @@
 				<a class="navbar-brand align-middle" href="https://github.com/italofds" target="_blank">italofds</a>
 				<span class="navbar-brand align-middle"> / </span>
 				<a class="navbar-brand align-middle" href="https://github.com/italofds/osint-ip-web" target="_blank">osint-ip-web</a>
+				<span class="text-white-50 align-bottom"><small>v1.0.0</small></span>
 			</div>
 
 		</div>
@@ -96,7 +97,7 @@
 				</div>
 			</div>		
 
-			<p class="text-muted small text-center">Desenvolvido por <a target="_blank" href="https://github.com/italofds">Ítalo Santos</a> | © 2024 | Licença GPL-3.0 | Contribua: <a target="_blank" href="https://github.com/italofds/osint-ip-web">github.com/italofds/osint-ip-web</a> | Hospedado pelo GitHub Pages</p>	
+			<p class="text-muted small text-center">Desenvolvido por <a target="_blank" href="https://github.com/italofds">Ítalo Santos</a> | © 2024 | Licença GPL-3.0| Hospedado pelo GitHub Pages | Contribua: <a target="_blank" href="https://github.com/italofds/osint-ip-web">github.com/italofds/osint-ip-web</a></p>	
 		</div>
 	</main>
 
@@ -110,6 +111,11 @@ import mapStyleJSON from '../assets/map-style.json'
 import moment from 'moment';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+
+const MAX_DAYS_DIFF = 10;
+const IP_REGEX = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b/gi;
+const NEW_LINE_REGEX = /\r?\n|\r|\n/g;
+const DEFAULT_DATE_FORMAT = "YYYY-MM-DD";
 
 function formatIP(IPAddressRaw){
 	var ipAddressFormated;
@@ -194,7 +200,7 @@ export default {
 		},
 		printDateValue: function (dateValue) {
 			if (dateValue) {
-				return validateDate(dateValue, "YYYY-MM-DD", this.selectedDateFormat.dateFormat);
+				return validateDate(dateValue, DEFAULT_DATE_FORMAT, this.selectedDateFormat.dateFormat);
 			}
 			return "-";
 		},
@@ -203,8 +209,7 @@ export default {
 			this.uniqueIpDataList = [];
 			this.mapMarkers = [];
 			
-			const regexIP = /\b(?:\d{1,3}\.){3}\d{1,3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b/gi;
-			var separateRows = this.formData.ipList.split(/\r?\n|\r|\n/g);
+			var separateRows = this.formData.ipList.split(NEW_LINE_REGEX);
 			
 			var resultSize = 0;			
 			if(separateRows && separateRows.length > 100) {
@@ -215,30 +220,38 @@ export default {
 
 			for (let i = 0; i < resultSize; i++) {
 				var row = separateRows[i];
-				var rowIpList = row.match(regexIP);
+				var rowIpList = row.match(IP_REGEX);
 				
 				if(rowIpList) {
 					//Start ip data config					
 					var ipAddressFormated = formatIP(rowIpList[0]);		
 					var validDate = "";
 					var ipDataIndex = -1;
-					row = row.replaceAll(regexIP, "");
+					row = row.replaceAll(IP_REGEX, "");
 				''
 					//Date ip config
 					var rowDateList = row.match(this.selectedDateFormat.regex);					
 					if(rowDateList) {
-						validDate = validateDate(rowDateList[0], this.selectedDateFormat.dateFormat, "YYYY-MM-DD");
+						validDate = validateDate(rowDateList[0], this.selectedDateFormat.dateFormat, DEFAULT_DATE_FORMAT);
 						row = row.replaceAll(this.selectedDateFormat.regex, "");			
 					}
 
 					//Unique ip data config
 					for (let i = 0; i < this.uniqueIpDataList.length; i++) {
 						var uniqueIpData = this.uniqueIpDataList[i];
-						if(uniqueIpData.ip == ipAddressFormated && uniqueIpData.date == validDate){
-							ipDataIndex = i;
-							break;
-						}
+						if(uniqueIpData.ip == ipAddressFormated){
+
+							var newIpDate = new Date(validDate);
+							var oldIpDate = new Date(uniqueIpData.date);
+							var diffDate = (newIpDate - oldIpDate) / (1000 * 60 * 60 * 24);
+
+							if(diffDate >= -MAX_DAYS_DIFF && diffDate <= MAX_DAYS_DIFF) {
+								ipDataIndex = i;
+								break;
+							}
+						}						
 					}
+
 					if(ipDataIndex == -1) {
 						this.uniqueIpDataList.push({status: "loading", ip: ipAddressFormated, country: "", region: "", city: "", isp: "", refDate: "", date: validDate});
 						ipDataIndex = this.uniqueIpDataList.length-1;
@@ -249,6 +262,7 @@ export default {
 				}
 			}
 
+			console.log(this.uniqueIpDataList);
 			window.location.href='#result';
 			this.fetchData();
 		},
