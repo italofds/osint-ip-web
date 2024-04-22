@@ -89,7 +89,7 @@
 				<h2>Resultado da Consulta:</h2>
 
 				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
-				<button class="btn btn-light" @click="exportExcel()">Exportar Excel</button>
+				<button class="btn btn-outline-secondary" @click="exportExcel()">Exportar Excel</button>
 				
 				<GMapMap ref="myMapRef" class="mt-3 mb-3" :center="{ lat: 0, lng: 0 }" :zoom="1" map-type-id="terrain" style="width: 100%; height: 400px" :options="{
 					zoomControl: true,
@@ -147,7 +147,7 @@
 	</main>
 
 	<a href="#start" class="btn btn-primary btn-lg btn-top p-0 d-flex justify-content-center align-items-center" v-if="resultList.length > 0">
-		<i class="bi bi-caret-up-fill"></i>
+		<i class="bi-arrow-up"></i>
 	</a>
 </template>
 
