@@ -1,10 +1,10 @@
 <template>
-	<header class="navbar navbar-expand navbar-dark bg-dark sticky-top shadow" aria-label="Second navbar example">
+	<header class="navbar navbar-expand navbar-dark bg-dark fixed-top shadow" aria-label="Second navbar example">
 		<div class="container">
 			<div class="navbar-brand my-1">
 				<i class="bi bi-search text-secondary h2 align-middle me-3"></i>
-				<a class="text-light align-middle" href="https://github.com/italofds" target="_blank">italofds</a>
-				<span class="text-secondary align-middle"> / </span>
+				<a class="text-light align-middle d-sm-inline d-none" href="https://github.com/italofds" target="_blank">italofds</a>
+				<span class="text-secondary align-middle d-sm-inline d-none"> / </span>
 				<a class="text-light align-middle" href="https://github.com/italofds/osint-ip-web" target="_blank">osint-ip-web</a>
 				<span class="badge rounded-pill text-bg-secondary align-middle ms-3" style="font-size:10pt;"><small>v1.1.0</small></span>
 			</div>
@@ -57,9 +57,9 @@
 		</div>
 	</header>
 
-	<main id="start" class="">
+	<main id="start" style="padding-top: 70px;">
 		<div class="container p-3">
-			<div class="bg-body-tertiary mb-3 p-5 rounded">
+			<div class="bg-body-tertiary mb-3 p-3 p-lg-5 rounded">
 				<h1 class="mb-3">Pesquisa em massa de informações de IP (por data ou não)</h1>
 				<p class="lead">Esta ferramenta permite a pesquisa em massa de <strong>informações de IP</strong> disponíveis publicamente na Internet.</p>
 				<p class="lead">Para isso, é necessário informar 1 ou mais endereços IP (IPv6 ou IPv4), <strong>separados por linha</strong>. Se desejar fazer uma pesquisa mais precisa por data, informe também a data na mesma linha.</p>
@@ -70,22 +70,24 @@
 						placeholder="255.255.255.255 1999-12-31" rows="5" required></textarea>
 
 					<div class="row">
-						<div class="col-md-6">
-							<div class="input-group mb-3" style="height:50px;">
+						<div class="col-md-6 d-grid">
+							<div class="input-group mb-3">
 								<span class="input-group-text" id="basic-addon1">Formato data:</span>
 								<select v-model="formData.selectedDateFormatIndex" class="form-select">
 									<option v-for="item in dateFormatItens" :value="item.id" :key="item.id">{{ item.text }}</option>
 								</select>
 							</div>
 						</div>
-						<div class="col-md-6 d-grid gap-2">
+						<div class="col-md-6 d-grid">
 							<button type="submit" class="btn btn-lg btn-primary mb-3">Consultar</button>
 						</div>
 					</div>
 				</form>
 			</div>
 
-			<div id="result" class="mt-5" v-show="resultList.length > 0">
+			<a class="anchor" id="result"></a>
+
+			<div class="my-5" v-show="resultList.length > 0">
 				<h2>Resultado da Consulta:</h2>
 
 				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
@@ -104,19 +106,19 @@
 					<GMapMarker :key="marker" v-for="marker in mapMarkers" :position="marker.position"/>	
 				</GMapMap>
 				
-				<div class="table-responsive mb-3">
+				<div class="table-responsive">
 					<table class="table table-striped table-hover mb-0">
 						<thead>
 							<tr>
-								<th scope="col"></th>
-								<th scope="col">Endereço IP</th>
-								<th scope="col">País</th>
-								<th scope="col">UF</th>
-								<th scope="col">Cidade</th>
-								<th scope="col">ISP</th>
-								<th scope="col" class="text-center">Data Ref.</th>
-								<th scope="col" class="text-center">Data IP</th>
-								<th v-if="hasExtraInfo" scope="col">Info. Extras</th>
+								<th scope="col" class="text-nowrap"></th>
+								<th scope="col" class="text-nowrap">Endereço IP</th>
+								<th scope="col" class="text-nowrap">País</th>
+								<th scope="col" class="text-nowrap">UF</th>
+								<th scope="col" class="text-nowrap">Cidade</th>
+								<th scope="col" class="text-nowrap">ISP</th>
+								<th scope="col" class="text-centertext-nowrap ">Data Ref.</th>
+								<th scope="col" class="text-center text-nowrap">Data IP</th>
+								<th v-if="hasExtraInfo" scope="col" class="text-nowrap">Info. Extras</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -381,6 +383,13 @@ export default {
 </script>
 
 <style>
+	a.anchor {
+		display: block;
+		position: relative;
+		top: -50px;
+		visibility: hidden;
+	}
+
 	.bi {
 		width: 1em;
 		height: 1em;
@@ -410,15 +419,13 @@ export default {
 
 	tr.error td {
 		background-color: #f8d7da;
+		color: #000;
 	}
 
 	.btn-top {
 		position: fixed;
 		bottom: 20px;
 		right: 20px;
-		display: none;
-		padding: 0px;
-		border-radius: 50%;
 		width: 3rem;
 		height: 3rem;
 	}
