@@ -93,16 +93,7 @@
 				<p class="text-muted">Exibindo resultado do total de <strong>{{ resultList.length }}</strong> endereços IP informados.</p>
 				<button class="btn btn-outline-secondary" @click="exportExcel()">Exportar Excel</button>
 				
-				<GMapMap ref="myMapRef" class="mt-3 mb-3" :center="{ lat: 0, lng: 0 }" :zoom="1" map-type-id="terrain" style="width: 100%; height: 400px" :options="{
-					zoomControl: true,
-					mapTypeControl: false,
-					scaleControl: false,
-					streetViewControl: false,
-					rotateControl: false,
-					fullscreenControl: false,
-					scrollwheel: false,
-					styles: mapStyle
-				}">
+				<GMapMap ref="myMapRef" class="mt-3 mb-3" :center="mapCenter" :zoom="mapZoom" map-type-id="terrain" style="width: 100%; height: 400px" :options="mapOptions">
 					<GMapMarker :key="marker" v-for="marker in mapMarkers" :position="marker.position"/>	
 				</GMapMap>
 				
@@ -154,7 +145,7 @@
 </template>
 
 <script>
-import mapStyleJSON from '../assets/map-style.json'
+import darkMapStyleJSON from '../assets/dark-map-style.json'
 import '../assets/js/color-modes.js'
 import moment from 'moment';
 import axios from 'axios';
@@ -223,7 +214,18 @@ export default {
 			},
 			uniqueIpDataList: [],
 			resultList: [],
-			mapMarkers: []
+			mapMarkers: [],
+			mapCenter: { lat: 0, lng: 0 },
+			mapZoom: 1,
+			mapOptions: {
+				zoomControl: true,
+				mapTypeControl: false,
+				scaleControl: false,
+				streetViewControl: false,
+				rotateControl: false,
+				fullscreenControl: false,
+				scrollwheel: false
+			}
 		};
 	},
 	computed: {
@@ -310,13 +312,12 @@ export default {
 				}
 			}
 
-			console.log(this.uniqueIpDataList);
 			window.location.href='#result';
 			this.fetchData();
 		},
 		async fetchData() {
-			var locationsList = [];
 			var bounds = new window.google.maps.LatLngBounds();
+			var mapMarkersSet = new Set();
 
 			for (let uniqueIpData of this.uniqueIpDataList) {
 				try {
@@ -330,24 +331,35 @@ export default {
 					uniqueIpData.refDate = response.data.dbDate;
 					uniqueIpData.status = "success";
 
-					var location = {lat: response.data.location.lat, lng: response.data.location.lng};
+					var latitude = response.data.location.lat;
+					var longitude = response.data.location.lng;
+					const key = `${latitude},${longitude}`;
 
-					locationsList.push(location);
-					var marker = {
-						position: {
-							lat: location.lat, lng: location.lng
-						},
-					};
-					this.mapMarkers.push(marker);
-					
-					bounds.extend(marker.position);
-					this.$refs.myMapRef.fitBounds(bounds);
+					if(!mapMarkersSet.has(key)) {
+						var marker = {
+							position: {
+								lat: latitude, lng: longitude
+							},
+						};
+
+						this.mapMarkers.push(marker);
+						mapMarkersSet.add(key);		
+						bounds.extend(marker.position);				
+					}
 
 				} catch (error) {
 					uniqueIpData.status = "error"
 					console.error('Ocorreu um erro durante a busca dos dados: ', error);
 				}
-			}			
+			}
+			
+			if(mapMarkersSet.size > 1) {				
+				this.$refs.myMapRef.fitBounds(bounds);
+
+			} else {
+				this.mapCenter = { lat: latitude, lng: longitude };
+				this.mapZoom = 10;
+			}
 		},
 		exportExcel() {
 			var exportDataList = [];
@@ -372,12 +384,29 @@ export default {
 			XLSX.writeFile(workbook, "ip-data-result.xlsx");
 		}
 	},
-	setup() {
-		const mapStyle = mapStyleJSON;
-
-		return {
-			mapStyle
+	mounted() {
+		if(document.documentElement.getAttribute("data-bs-theme") === "dark"){
+			this.mapOptions.styles = darkMapStyleJSON;
 		}
+
+		const mutationCallback = (mutationsList) => {
+			for (const mutation of mutationsList) {
+				if (
+				mutation.type !== "attributes" ||
+				mutation.attributeName !== "data-bs-theme"
+				) {
+				return
+				}
+
+				if(mutation.target.getAttribute("data-bs-theme") === "dark") {
+					this.mapOptions.styles = darkMapStyleJSON;
+				} else {
+					this.mapOptions.styles = [];
+				}
+			}
+		}
+		const observer = new MutationObserver(mutationCallback);
+		observer.observe(document.documentElement, { attributes: true });
 	}
 }
 </script>
