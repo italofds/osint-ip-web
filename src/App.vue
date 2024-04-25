@@ -1,5 +1,5 @@
 <template>
-	<header class="navbar navbar-expand navbar-dark bg-dark fixed-top shadow" aria-label="Second navbar example">
+	<header class="navbar navbar-expand navbar-dark bg-dark fixed-top shadow">
 		<div class="container">
 			<div class="navbar-brand my-1">
 				<i class="bi bi-search text-secondary h2 align-middle me-3"></i>
@@ -343,22 +343,22 @@ export default {
 						};
 
 						this.mapMarkers.push(marker);
-						mapMarkersSet.add(key);		
-						bounds.extend(marker.position);				
+						mapMarkersSet.add(key);								
+						bounds.extend(marker.position);
+
+						if(mapMarkersSet.size > 1) {	
+							this.$refs.myMapRef.fitBounds(bounds);
+
+						} else {
+							this.mapCenter = { lat: latitude, lng: longitude };
+							this.mapZoom = 10;
+						}
 					}
 
 				} catch (error) {
 					uniqueIpData.status = "error"
 					console.error('Ocorreu um erro durante a busca dos dados: ', error);
 				}
-			}
-			
-			if(mapMarkersSet.size > 1) {				
-				this.$refs.myMapRef.fitBounds(bounds);
-
-			} else {
-				this.mapCenter = { lat: latitude, lng: longitude };
-				this.mapZoom = 10;
 			}
 		},
 		exportExcel() {
